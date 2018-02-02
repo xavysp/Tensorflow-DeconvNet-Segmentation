@@ -43,7 +43,7 @@ class DeconvNet:
 
                 os.remove(os.path.join('data', filename))
 
-    def restore_session():
+    def restore_session(self):
         global_step = 0
         if not os.path.exists(self.checkpoint_dir):
             raise IOError(self.checkpoint_dir + ' does not exist.')
@@ -59,7 +59,7 @@ class DeconvNet:
 
     # ! Does not work for now ! But currently I'm working on it -> PR's welcome!
     def predict(self, image):
-        restore_session()
+        self.restore_session()
         return self.prediction.eval(session=self.session, feed_dict={image: [image]})[0]
 
     # From Github user bcaine, https://github.com/tensorflow/tensorflow/issues/1793
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     logits=deconvnet.logits
 
     cross_entropy=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(tf.reshape(deconvnet.y, [-1]), tf.int64), logits=logits,
-        , name='x_entropy')
+        name='x_entropy')
     
     loss_mean=tf.reduce_mean(cross_entropy, name='x_entropy_mean')
 
@@ -346,7 +346,7 @@ if __name__ == '__main__':
 
         
         except tf.errors.OutOfRangeError:
-            print 'Done training -- epoch limit reached'
+            print ('Done training -- epoch limit reached')
         finally:
             coord.request_stop()
             coord.join(threads)

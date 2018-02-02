@@ -14,7 +14,7 @@ class DeconvNet:
 
         self.build(use_cpu=use_cpu)
 
-        self.saver = tf.train.Saver(max_to_keep = 5, keep_checkpoint_every_n_hours =1)
+        self.saver = tf.train.Saver(max_to_keep = 10, keep_checkpoint_every_n_hours =1)
         config = tf.ConfigProto(allow_soft_placement = True)
         self.session = tf.Session(config = config)
         self.session.run(tf.global_variables_initializer())
@@ -35,7 +35,7 @@ class DeconvNet:
 
                 os.remove(os.path.join('data', filename))
 
-    def restore_session():
+    def restore_session(self):
         global_step = 0
         if not os.path.exists(self.checkpoint_dir):
             raise IOError(self.checkpoint_dir + ' does not exist.')
@@ -51,11 +51,11 @@ class DeconvNet:
 
 
     def predict(self, image):
-        restore_session()
+        self.restore_session()
         return self.prediction.eval(session=self.session, feed_dict={image: [image]})[0]
 
 
-    def train(self, train_stage=1, training_steps=5, restore_session=False, learning_rate=1e-6):
+    def train(self, train_stage=1, training_steps=100, restore_session=False, learning_rate=1e-6):
         if restore_session:
             step_start = restore_session()
         else:
@@ -75,15 +75,29 @@ class DeconvNet:
             ground_truth = cv2.imread('data' + ground_truth_file[:-1], cv2.IMREAD_GRAYSCALE)
             # norm to 21 classes [0-20] (see paper)
             ground_truth = (ground_truth / 255) * 20
-            print('run train step: '+str(i))
             start = time.time()
-            self.train_step.run(session=self.session, feed_dict={self.x: [image], self.y: [ground_truth], self.rate: learning_rate})
+            # self.train_step.run(session=self.session,
+            #                     feed_dict={self.x: [image], self.y: [ground_truth], self.rate: learning_rate})
+            _, c_loss, pred = self.session.run([self.train_step, self.loss, self.prediction],feed_dict={self.x: [image], self.y: [ground_truth], self.rate: learning_rate})
+            print("run train step: ",i," Training loss: ", c_loss,"image shape: ", image.shape, "GT shape", ground_truth.shape)
+            # current images
+            a = np.uint8(ground_truth*12.5)
+            b = np.reshape(np.uint8(pred*12.5),[pred.shape[1],pred.shape[2]])
+            c = cv2.cvtColor(np.uint8(image), cv2.COLOR_RGB2GRAY)
+            # tmp_lbl = cv2.cvtColor(tmp_lbl, cv2.COLOR_GRAY2BGR)
+            hori_imgs = np.concatenate([c, b],axis=1)
+            hori_imgs = np.concatenate([hori_imgs,a], axis=1)
+
+            cv2.imshow("Img && Pred  && GT", hori_imgs)
+            cv2.waitKey(500)
+
 
             if i % 10000 == 0:
                 print('step {} finished in {:.2f} s with loss of {:.6f}'.format(
                     i, time.time() - start, self.loss.eval(session=self.session, feed_dict={self.x: [image], self.y: [ground_truth]})))
                 self.saver.save(self.session, self.checkpoint_dir+'model', global_step=i)
                 print('Model {} saved'.format(i))
+        cv2.destroyAllWindows()
 
     def build(self, use_cpu=False):
         '''
@@ -259,7 +273,7 @@ class DeconvNet:
         channels = out_shape[3]
 
         argmax_shape = tf.to_int64([batch_size, height, width, channels])
-        argmax = unravel_argmax(argmax, argmax_shape)
+        argmax = self.unravel_argmax(argmax, argmax_shape)
 
         t1 = tf.to_int64(tf.range(channels))
         t1 = tf.tile(t1, [batch_size*(width//2)*(height//2)])

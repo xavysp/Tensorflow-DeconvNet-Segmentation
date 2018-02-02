@@ -11,19 +11,15 @@ from pprint import pprint
 import argparse
 
 def read_filelist(img_path, seg_path):
-    
-    imgList=[os.path.join(dirpath, f)
-    for dirpath, dirnames, files in os.walk(img_path)
-        for f in files if f.endswith('.png')]
+
+    imgList = [f for f in os.listdir(img_path) if f.endswith(".png")]
     imgList=natsorted(imgList)
-    print "No of files: %i" % len(imgList)
+    print ("No of files: %i" % len(imgList))
     imgFiles=tf.train.string_input_producer(imgList,shuffle=False)
 
-    segList=[os.path.join(dirpath, f)
-    for dirpath, dirnames, files in os.walk(seg_path)
-        for f in files if f.endswith('.png')]
+    segList= [f for f in os.listdir(seg_path) if f.endswith(".png")]
     segList=natsorted(segList)
-    print "No of files: %i" % len(segList)
+    print ("No of files: %i" % len(segList))
     segFiles=tf.train.string_input_producer(segList,shuffle=False)
 
     return imgFiles, len(imgList), segFiles, len(segList)
@@ -37,8 +33,8 @@ def _bytes_feature(value):
 if __name__ == '__main__':
 
     parser=argparse.ArgumentParser()
-    parser.add_argument('--imgpath',help="path to images",default="data/VOC_OBJECT/dataset_multlabel/images/")
-    parser.add_argument('--segpath',help="path to segmentations",default="data/VOC_OBJECT/dataset_multlabel/segmentations/")
+    parser.add_argument('--imgpath',help="path to images",default="../data/VOC_OBJECT/dataset_multlabel/images/")
+    parser.add_argument('--segpath',help="path to segmentations",default="../data/VOC_OBJECT/dataset_multlabel/segmentations/")
     parser.add_argument('--outpath',help="path to write tfrecord",default="tfrecords/")
     parser.add_argument('--rec',help="tfrecord file name to write",default="pascalvoc2012")
     parser.add_argument('--crop',help="should we crop/pad images to fixed size?",default="y")
@@ -54,7 +50,7 @@ if __name__ == '__main__':
     mySeg=tf.image.decode_png(mvalue) #reads images into tensor
 
     if args.crop == "y":
-        print 'Resizing images to 224x224'
+        print ('Resizing images to 224x224')
         myImg = tf.image.resize_image_with_crop_or_pad(myImg, 224, 224)
         mySeg = tf.image.resize_image_with_crop_or_pad(mySeg, 224, 224)
 
